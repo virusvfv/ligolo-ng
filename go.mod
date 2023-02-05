@@ -15,7 +15,11 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478
 )
 
-require github.com/nicocha30/gvisor-ligolo v0.0.0-20230201100237-f26fe0a6c03c
+require (
+	github.com/likexian/doh-go v0.6.4
+	github.com/nicocha30/gvisor-ligolo v0.0.0-20230201100237-f26fe0a6c03c
+	nhooyr.io/websocket v1.8.7
+)
 
 require (
 	github.com/desertbit/closer/v3 v3.1.3 // indirect
@@ -31,6 +35,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.10.3 // indirect
+	github.com/likexian/gokit v0.21.11 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
@@ -43,5 +48,4 @@ require (
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
-	nhooyr.io/websocket v1.8.7 // indirect
 )

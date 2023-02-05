@@ -26,6 +26,7 @@ An advanced, yet simple, tunneling tool that uses a TUN interface.
     - [Using Let's Encrypt Autocert](#using-lets-encrypt-autocert)
     - [Using your own TLS certificates](#using-your-own-tls-certificates)
     - [Automatic self-signed certificates (NOT RECOMMENDED)](#automatic-self-signed-certificates-not-recommended)
+    - [Hiding target domain with TLS 1.3 ECH and DomainFronting](#ech-domainfronting)
   - [Agent Binding/Listening](#agent-bindinglistening)
 - [Demo](#demo)
 - [Does it require Administrator/root access ?](#does-it-require-administratorroot-access-)
@@ -54,6 +55,7 @@ tunnels from a reverse TCP/TLS connection using a **tun interface** (without the
 - Multiple platforms supported for the *agent*
 - Using websockets for agent connection (with Cloudflare/AWS support)
 - Socks5/HTTP proxy server support
+- ECH TLS1.3 and domainfronting support
 
 ## How is this different from Ligolo/Chisel/Meterpreter... ?
 
@@ -129,8 +131,38 @@ If you want to use your own certificates for the proxy server, you can use the `
 The *proxy/relay* can automatically generate self-signed TLS certificates using the `-selfcert` option.
 
 The `-ignore-cert` option needs to be used with the *agent*.
-
 > Beware of man-in-the-middle attacks! This option should only be used in a test environment or for debugging purposes.
+
+#### Hiding target domain with TLS 1.3 ECH and DomainFronting
+With -ech option agent uses ECH (encrypted client hello) to hide target C2 domain from TLS client-hello packet. 
+To do this first of all agent query for ECHKeys from DNS server, then encrypts the clienthello packet and tries to establish TCL1.3 connection to server.
+To retrieve ECHKeys and target IP address agent uses DoH request to Cloudflare DoH provider. This disables DNS system queries and DNS leaks about target domain.
+Proxy option also supported in ECH mode. With proxy option agent will use proxy-server to DoH and TLS1.3 connection.
+> Beware of man-in-the-middle proxies (Such as corporate-level Cisco, FortiProxy etc)! With a MiTM proxy can view your target domain in DoH request !
+
+Currently only Cloudflare supports ECH. So to use this feature you have to cover your C2 domain by Cloudflare. (Fortunately ECH and TLS 1.3 are supported by Cloudflare at any tariffs plans ).
+
+Additionally, ECH is currently supported only by custom Cloudlare GO fork (https://github.com/cloudflare/go). 
+To build agent you have to build CF go (download fork and run ./src/make.bash script) and use it by specifying GOROOT.
+```shell
+git clone https://github.com/cloudflare/go.git /opt/go-cf
+cd /opt/go-cf/src
+./make.bash
+cd ~/src/ligolo-ng/cmd/agent #or where your ligolo project exists
+GOOS=windows GOROOT=/opt/go-cf  /opt/go-cf/bin/go build -o agent-ech.exe -ldflags "-s -w"
+```
+ About ECH DomainFronting
+By default CF GO fork use domain name from ECHkeys as cover. Currently, all CF ECHKeys for all domains contains cloudflare-ech.com domain name. 
+ This means that all SNI (server name) will be cloudflare-ech.com. But you can zero it or even write anything to this field.
+To do this you have to edit .../src/crypto/tls/ech.go file in CF GO fork:
+```azure
+disable: hello.serverName = hostnameInSNI(string(echConfig.rawPublicName))
+and add instead: hello.serverName = "" or hello.serverName = "what ever you want"
+```
+and rebuild agent. 
+After this agent's SNI will be corrected :)
+
+P.S. you can read more about TLS1.3, ECH and domainfronting in this article(on Russian): https://habr.com/en/post/702420/ 
 ### Using Ligolo-ng
 
 

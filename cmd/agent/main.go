@@ -411,7 +411,7 @@ func handleConn(conn net.Conn) {
 			hostname = "UNKNOWN"
 		}
 
-		userinfo, _ := user.Current()
+		userinfo, err := user.Current()
 		if err != nil {
 			username = "Unknown"
 		} else {

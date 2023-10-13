@@ -1,6 +1,6 @@
 module github.com/nicocha30/ligolo-ng
 
-go 1.17
+go 1.20
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.5
@@ -8,16 +8,15 @@ require (
 	github.com/go-ping/ping v1.1.0
 	github.com/hashicorp/yamux v0.1.0
 	github.com/jedib0t/go-pretty/v6 v6.3.5
-	github.com/sirupsen/logrus v1.9.0
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
-	golang.org/x/net v0.0.0-20220708220712-1185a9018129
+	github.com/sirupsen/logrus v1.9.3
+	golang.org/x/crypto v0.11.0
+	golang.org/x/net v0.12.0
 	golang.zx2c4.com/wintun v0.0.0-20211104114900-415007cec224 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478
 )
 
 require (
-	github.com/likexian/doh-go v0.6.4
-	github.com/nicocha30/gvisor-ligolo v0.0.0-20230201100237-f26fe0a6c03c
+	github.com/nicocha30/gvisor-ligolo v0.0.0-20230726075806-989fa2c0a413
 	nhooyr.io/websocket v1.8.7
 )
 
@@ -27,25 +26,20 @@ require (
 	github.com/desertbit/go-shlex v0.1.1 // indirect
 	github.com/desertbit/readline v1.5.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/btree v1.1.2 // indirect
-	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.10.3 // indirect
-	github.com/likexian/gokit v0.21.11 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.2.0 // indirect
-	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
 )

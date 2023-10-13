@@ -22,6 +22,13 @@ var AgentList map[int]proxy.LigoloAgent
 var AgentListMutex sync.Mutex
 var ListenerList map[int]proxy.Listener
 var ListenerListMutex sync.Mutex
+var nstack *netstack.NetStack
+
+// CurrentAgent points to the selected agent in the UI (when running session)
+var CurrentAgent proxy.LigoloAgent
+
+// ListeningAgent points to the currently running agent (forwarding packets)
+var ListeningAgent proxy.LigoloAgent
 
 var (
 	ErrInvalidAgent   = errors.New("please, select an agent using the session command")
@@ -40,11 +47,84 @@ func RegisterAgent(agent proxy.LigoloAgent) error {
 	return nil
 }
 
+func AutostartAgent(agent proxy.LigoloAgent) error {
+	ListeningAgent = agent
+	CurrentAgent = agent
+	logrus.Infof("Autostarting tunnel to %s", agent.Name)
+	// Create a new, empty, connpool to store connections/packets
+	connPool := netstack.NewConnPool(MaxConnectionHandler)
+	nstack.SetConnPool(&connPool)
+
+	// Cleanup pool if channel is closed
+	defer connPool.Close()
+
+	for {
+		select {
+		case <-ListeningAgent.CloseChan: // User stopped
+			logrus.Infof("Closing tunnel to %s...", ListeningAgent.Name)
+			return errors.New("User stopped")
+		case <-ListeningAgent.Session.CloseChan(): // Agent closed
+			logrus.Warnf("Lost connection with agent %s!", ListeningAgent.Name)
+			// Connection lost, we need to delete the Agent from the list
+			AgentListMutex.Lock()
+			delete(AgentList, ListeningAgent.Id)
+			AgentListMutex.Unlock()
+			if CurrentAgent.Id == ListeningAgent.Id {
+				App.SetDefaultPrompt()
+				CurrentAgent.Session = nil
+			}
+			return errors.New("Agent closed")
+		case <-connPool.CloseChan: // pool closed, we can't process packets!
+			logrus.Infof("Connection pool closed")
+			return errors.New("Connection pool closed")
+		case tunnelPacket := <-connPool.Pool: // Process connections/packets
+			go netstack.HandlePacket(nstack.GetStack(), tunnelPacket, ListeningAgent.Session)
+		}
+	}
+	return nil
+}
+
+func StartTunnel() {
+
+	logrus.Infof("Starting tunnel to %s", ListeningAgent.Name)
+
+	// Create a new, empty, connpool to store connections/packets
+	connPool := netstack.NewConnPool(MaxConnectionHandler)
+	nstack.SetConnPool(&connPool)
+
+	// Cleanup pool if channel is closed
+	defer connPool.Close()
+
+	for {
+		select {
+		case <-ListeningAgent.CloseChan: // User stopped
+			logrus.Infof("Closing tunnel to %s...", ListeningAgent.Name)
+			return
+		case <-ListeningAgent.Session.CloseChan(): // Agent closed
+			logrus.Warnf("Lost connection with agent %s!", ListeningAgent.Name)
+			// Connection lost, we need to delete the Agent from the list
+			AgentListMutex.Lock()
+			delete(AgentList, ListeningAgent.Id)
+			AgentListMutex.Unlock()
+			if CurrentAgent.Id == ListeningAgent.Id {
+				App.SetDefaultPrompt()
+				CurrentAgent.Session = nil
+			}
+			return
+		case <-connPool.CloseChan: // pool closed, we can't process packets!
+			logrus.Infof("Connection pool closed")
+			return
+		case tunnelPacket := <-connPool.Pool: // Process connections/packets
+			go netstack.HandlePacket(nstack.GetStack(), tunnelPacket, ListeningAgent.Session)
+		}
+	}
+}
+
 func Run(stackSettings netstack.StackSettings) {
 	// CurrentAgent points to the selected agent in the UI (when running session)
-	var CurrentAgent proxy.LigoloAgent
+	//var CurrentAgent proxy.LigoloAgent
 	// ListeningAgent points to the currently running agent (forwarding packets)
-	var ListeningAgent proxy.LigoloAgent
+	//var ListeningAgent proxy.LigoloAgent
 	// AgentList contains all the connected agents
 	AgentList = make(map[int]proxy.LigoloAgent)
 	// ListenerList contains all listener relays
@@ -52,7 +132,7 @@ func Run(stackSettings netstack.StackSettings) {
 
 	// Create a new stack, but without connPool.
 	// The connPool will be created when using the *start* command
-	nstack := netstack.NewStack(stackSettings, nil)
+	nstack = netstack.NewStack(stackSettings, nil)
 
 	App.AddCommand(&grumble.Command{
 		Name:  "session",
@@ -130,6 +210,8 @@ func Run(stackSettings netstack.StackSettings) {
 
 			ListeningAgent = CurrentAgent
 
+			//go StartTunnel()
+
 			go func() {
 				logrus.Infof("Starting tunnel to %s", ListeningAgent.Name)
 
@@ -164,6 +246,7 @@ func Run(stackSettings netstack.StackSettings) {
 					}
 				}
 			}()
+
 			return nil
 		},
 	})

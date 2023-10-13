@@ -61,7 +61,8 @@ func main() {
 		//websocket connection
 		host, _, err := net.SplitHostPort(strings.Replace(*serverAddr, "https://", "", 1))
 		if err != nil {
-			logrus.Fatal("invalid https address, please use https://host:port")
+			logrus.Info("There is no port in address string, assuming that port is 443")
+			host = strings.Replace(*serverAddr, "https://", "", 1)
 		}
 		tlsConfig.ServerName = host
 		if *ignoreCertificate {
@@ -218,6 +219,17 @@ func wsconnect(config *tls.Config, wsaddr string, proxystr string, useragent str
 		serverport = serverUrl.Port()
 	}
 
+	//proxystr = "http://admin:secret@127.0.0.1:8080"
+	proxyUrl, err := url.Parse(proxystr)
+	if err != nil || proxystr == "" {
+		proxyUrl = nil
+	}
+	stdDialer := &net.Dialer{
+		Timeout:   20 * time.Second,
+		KeepAlive: 60 * time.Second,
+	}
+	httpTransport := &http.Transport{}
+
 	if useECH {
 		echConfigsList, ipaddr = DoHGetIPECHKeys(servername, proxystr)
 		if echConfigsList != nil || ipaddr != "" {
@@ -231,30 +243,29 @@ func wsconnect(config *tls.Config, wsaddr string, proxystr string, useragent str
 			config.ECHEnabled = false
 			config.MinVersion = tls.VersionTLS11
 		}
-	}
+		//small hack to disable system DNS requests for target domain
+		httpTransport = &http.Transport{
+			MaxIdleConns:    http.DefaultMaxIdleConnsPerHost,
+			TLSClientConfig: config,
+			Proxy:           http.ProxyURL(proxyUrl),
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				//logrus.Printf("Debug: addr is %s", addr)
+				if addr == (servername + ":" + serverport) {
+					addr = ipaddr + ":" + serverport
+				}
+				return stdDialer.DialContext(ctx, network, addr)
+			},
+		}
+	} else {
+		config.ECHEnabled = false
+		config.ClientECHConfigs = echConfigsList
+		config.MinVersion = tls.VersionTLS10
 
-	//proxystr = "http://admin:secret@127.0.0.1:8080"
-	proxyUrl, err := url.Parse(proxystr)
-	if err != nil || proxystr == "" {
-		proxyUrl = nil
-	}
-
-	//small hack to disable system DNS requests for target domain
-	stdDialer := &net.Dialer{
-		Timeout:   20 * time.Second,
-		KeepAlive: 60 * time.Second,
-	}
-	httpTransport := &http.Transport{
-		MaxIdleConns:    http.DefaultMaxIdleConnsPerHost,
-		TLSClientConfig: config,
-		Proxy:           http.ProxyURL(proxyUrl),
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			//logrus.Printf("Debug: addr is %s", addr)
-			if addr == (servername + ":" + serverport) {
-				addr = ipaddr + ":" + serverport
-			}
-			return stdDialer.DialContext(ctx, network, addr)
-		},
+		httpTransport = &http.Transport{
+			MaxIdleConns:    http.DefaultMaxIdleConnsPerHost,
+			TLSClientConfig: config,
+			Proxy:           http.ProxyURL(proxyUrl),
+		}
 	}
 
 	httpClient := &http.Client{Transport: httpTransport}

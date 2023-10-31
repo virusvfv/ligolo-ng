@@ -39,8 +39,8 @@ func main() {
 	var ignoreCertificate = flag.Bool("ignore-cert", false, "ignore TLS certificate validation (dangerous), only for debug purposes")
 	var verbose = flag.Bool("v", false, "enable verbose mode")
 	var ech = flag.Bool("ech", false, "enable verbose mode")
-	var retry = flag.Bool("retry", false, "auto-retry on error")
-	var retryTime = flag.Int("retryTime", 5, "auto-retry timeout in sec")
+	var retry = flag.Bool("retry", true, "auto-retry on error")
+	var retryTime = flag.Int("retryTime", 65, "auto-retry timeout in sec")
 	var socksProxy = flag.String("proxy", "", "socks5/http proxy address (ip:port) "+
 		"in case of websockets it could be proxy URL: http://admin:secret@127.0.0.1:8080")
 	var socksUser = flag.String("socks-user", "", "socks5 username")

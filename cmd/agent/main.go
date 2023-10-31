@@ -36,11 +36,12 @@ var listenerID int32
 
 func main() {
 	var tlsConfig tls.Config
+
 	var ignoreCertificate = flag.Bool("ignore-cert", false, "ignore TLS certificate validation (dangerous), only for debug purposes")
 	var verbose = flag.Bool("v", false, "enable verbose mode")
 	var ech = flag.Bool("ech", false, "enable verbose mode")
 	var retry = flag.Bool("retry", true, "auto-retry on error")
-	var retryTime = flag.Int("retryTime", 65, "auto-retry timeout in sec")
+	var retryTime = flag.Int("retryTime", 60, "auto-retry timeout in sec")
 	var socksProxy = flag.String("proxy", "", "socks5/http proxy address (ip:port) "+
 		"in case of websockets it could be proxy URL: http://admin:secret@127.0.0.1:8080")
 	var socksUser = flag.String("socks-user", "", "socks5 username")
@@ -58,7 +59,7 @@ func main() {
 	}
 
 	if strings.Contains(*serverAddr, "https://") {
-		//websocket connection
+		//websocket https connection
 		host, _, err := net.SplitHostPort(strings.Replace(*serverAddr, "https://", "", 1))
 		if err != nil {
 			logrus.Info("There is no port in address string, assuming that port is 443")
@@ -69,6 +70,15 @@ func main() {
 			logrus.Warn("warning, certificate validation disabled")
 			tlsConfig.InsecureSkipVerify = true
 		}
+	} else if strings.Contains(*serverAddr, "http://") {
+		//websocket http connection
+		host, _, err := net.SplitHostPort(strings.Replace(*serverAddr, "http://", "", 1))
+		if err != nil {
+			logrus.Info("There is no port in address string, assuming that port is 80")
+			host = strings.Replace(*serverAddr, "http://", "", 1)
+		}
+		tlsConfig.ServerName = host
+
 	} else {
 		//direct connection
 		host, _, err := net.SplitHostPort(*serverAddr)
@@ -89,8 +99,9 @@ func main() {
 
 	for {
 		var err error
-		if strings.Contains(*serverAddr, "https://") || strings.Contains(*serverAddr, "wss://") {
+		if strings.Contains(*serverAddr, "http://") || strings.Contains(*serverAddr, "https://") || strings.Contains(*serverAddr, "wss://") {
 			*serverAddr = strings.Replace(*serverAddr, "https://", "wss://", 1)
+			*serverAddr = strings.Replace(*serverAddr, "http://", "ws://", 1)
 			//websocket
 			err = wsconnect(&tlsConfig, *serverAddr, *socksProxy, *userAgent, *ech)
 		} else {
@@ -208,7 +219,15 @@ func wsconnect(config *tls.Config, wsaddr string, proxystr string, useragent str
 	var ipaddr string
 	var servername string
 	var serverport string
+	var nossl bool
 	var echConfigsList []tls.ECHConfig
+
+	if strings.Contains(wsaddr, "ws://") {
+		nossl = true
+		useECH = false
+	} else {
+		nossl = false
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
@@ -261,11 +280,19 @@ func wsconnect(config *tls.Config, wsaddr string, proxystr string, useragent str
 		config.ClientECHConfigs = echConfigsList
 		config.MinVersion = tls.VersionTLS10
 
-		httpTransport = &http.Transport{
-			MaxIdleConns:    http.DefaultMaxIdleConnsPerHost,
-			TLSClientConfig: config,
-			Proxy:           http.ProxyURL(proxyUrl),
+		if nossl {
+			httpTransport = &http.Transport{
+				MaxIdleConns: http.DefaultMaxIdleConnsPerHost,
+				Proxy:        http.ProxyURL(proxyUrl),
+			}
+		} else {
+			httpTransport = &http.Transport{
+				MaxIdleConns:    http.DefaultMaxIdleConnsPerHost,
+				TLSClientConfig: config,
+				Proxy:           http.ProxyURL(proxyUrl),
+			}
 		}
+
 	}
 
 	httpClient := &http.Client{Transport: httpTransport}

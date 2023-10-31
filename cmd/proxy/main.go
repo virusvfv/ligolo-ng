@@ -44,9 +44,16 @@ func main() {
 		MaxInflight: *maxInflight,
 	})
 
+	//check if cleartext websocket is used
+	nossl := false
+	if strings.Contains(*listenInterface, "http://") || strings.Contains(*listenInterface, "ws://") {
+		nossl = true
+	}
+
 	proxyController := proxy.New(proxy.ControllerConfig{
 		EnableAutocert:  *enableAutocert,
 		EnableSelfcert:  *enableSelfcert,
+		DisableSSL:      nossl,
 		Address:         *listenInterface,
 		Certfile:        *certFile,
 		Keyfile:         *keyFile,

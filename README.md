@@ -33,6 +33,7 @@ You use Ligolo-ng for your penetration tests? Did it help you pass a certificati
     - [Using your own TLS certificates](#using-your-own-tls-certificates)
     - [Automatic self-signed certificates (NOT RECOMMENDED)](#automatic-self-signed-certificates-not-recommended)
     - [Alter Serve name](#using-alter-servername)
+    - [ECH support](#ech-support)
   - [Using Ligolo-ng](#using-ligolo-ng)
   - [Agent Binding/Listening](#agent-bindinglistening)
   - [Access to agent's local ports (127.0.0.1)](#access-to-agents-local-ports-127001)
@@ -153,6 +154,11 @@ In this example agent will connect to your C2 domain but use outlook.office365.c
 P.S. Ms Office domains are in TLS-mitm bypass lists in all modern firewalls ;)
 Of cource, this feature doesn't work when your domain is behind CDN.
 
+#### ECH support
+
+Agent supports TLS 1.3 ECH (Encrypted Client Hello) as experimental feature. This feature currently tested with cloudflare CDN.
+To enbale this you have to build agent with Cloudflare GO (https://github.com/cloudflare/go) and use flag `-ech`
+Unfortunately CF does not fully support yet ECH for customers domains. This means that SNI field in ClientHello packet always will be `cloudflare-ech.com`   
 ### Using Ligolo-ng
 
 
